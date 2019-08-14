@@ -1,7 +1,10 @@
 <?php
-
 class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
 {
+    /**
+     * @param $data
+     * @return array
+     */
     protected function _prepareCustomerData($data)
     {
         $genderAttributeCode = Mage::getStoreConfig('tappz/customer/gender');
@@ -20,7 +23,10 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $result[$birthDateAttributeCode] = $data->birthDate;
         return $result;
     }
-
+    /**
+     * @param $customerId
+     * @return array
+     */
     public function info($customerId)
     {
         $genderAttributeCode = Mage::getStoreConfig('tappz/customer/gender');
@@ -55,10 +61,8 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $result['email'] = $customer->getData($emailAttributeCode);
         $result['phone'] = $customer->getData($phoneAttributeCode);
         $result['birthDate'] = $customer->getData($birthDateAttributeCode);
-
         $subscriber = Mage::getModel('newsletter/subscriber')->loadByEmail($customer->getData($emailAttributeCode));
         $result['isSubscribed'] = (bool)$subscriber->getId();
-
         $points = Mage::getModel('enterprise_reward/reward');
         if ($points) {
             $points = $points->setCustomer($customer)
@@ -67,24 +71,22 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
                 ->getPointsBalance();
         }
         $result['points'] = $points;
-
         $result['addresses'] = Mage::getSingleton('tappz/customer_address_api')->getList($customer->getId()); /// ??????
-
         $result['giftCheques'] = array();
-        
+
         return $result;
     }
-
+    /**
+     * @param $userName
+     * @param $password
+     * @return array
+     */
     public function login($userName, $password)
     {
         $storeId = Mage::getStoreConfig('tappz/general/store');
-        /** @var Mage_Core_Model_Store $store */
         $store = Mage::getModel('core/store')->load($storeId);
-
         $customer = Mage::getModel('customer/customer')
             ->setStore($store);
-        /* @var $customer  Mage_Customer_Model_Customer */
-
         try {
             $customer->authenticate($userName, $password);
         } catch (Exception $e) {
@@ -100,25 +102,64 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
                     break;
             }
         }
-
         $customer = $customer->loadByEmail($userName);
         return $this->info($customer->getId());
     }
-
+    /**
+     * @param $facebookAccessToken
+     * @param $facebookUserId
+     */
     public function facebookLogin($facebookAccessToken, $facebookUserId)
     {
-        //TODO : mcgoncu - fblogin
+        $storeId = Mage::getStoreConfig('tappz/general/store');
+        $store = Mage::getModel('core/store')->load($storeId);
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER,1);
+        curl_setopt($curl, CURLOPT_URL, "https://graph.facebook.com/$facebookUserId?fields=id,name,email,first_name,last_name,gender,verified,birthday&access_token=$facebookAccessToken");
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        $result = curl_exec($curl);
+        $userInfo =  json_decode($result);
+        curl_close($curl);
+        $email = $userInfo->email;
+        $customerExist = Mage::getModel('customer/customer')
+            ->getCollection()
+            ->addAttributeToSelect('*')
+            ->addAttributeToFilter('email', "$email" )
+            ->getFirstItem();
+        if(($customerExist['entity_id']) > 0){
+            $customer = Mage::getModel('customer/customer')->setStore($store);
+            $customer->loadByEmail($email);
+            return $this->info($customer->getId());
+        }else{
+            $password  = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 10);
+            $registerCustomer["fullName"] = $userInfo->name;
+            $registerCustomer["firstName"]  = $userInfo->first_name;
+            $registerCustomer["lastName"] = $userInfo->last_name;
+            $registerCustomer["customerId"] = "";
+            $registerCustomer["isSubscribed"] = 1;
+            $registerCustomer["gender"] =  $userInfo->gender ;
+            $registerCustomer["isAccepted"]=$userInfo->verified;
+            $registerCustomer[ "email"] = $email;
+            $registerCustomer[ "password"] = $password;
+            $registerCustomer["phone"] = "";
+            $registerCustomer["birthDate"] = $userInfo->birthday ;
+            $registerCustomer["points"] = "";
+            $registerCustomer[ "addresses"] = array();
+            $registerCustomer["giftCheques"] = array();
+            return$this->register((object)$registerCustomer);
+        }
     }
-
+    /**
+     *
+     * @param type $tCustomerData
+     * @return type
+     */
     public function register($tCustomerData)
     {
         $storeId = Mage::getStoreConfig('tappz/general/store');
-        /** @var Mage_Core_Model_Store $store */
         $store = Mage::getModel('core/store')->load($storeId);
-
         $customerData = $this->_prepareCustomerData($tCustomerData);
         try {
-            /* @var $customer Mage_Customer_Model_Customer */
             $customer = Mage::getModel('customer/customer');
             $customer->setData($customerData)
                 ->setPassword($customerData['password'])
@@ -127,25 +168,23 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         } catch (Mage_Core_Exception $e) {
             $this->_fault('invalid_data', $e->getMessage());
         }
-
         return $this->info($customer->getId());
     }
-
+    /**
+     * @param $tCustomerData
+     * @return array
+     */
     public function update($tCustomerData)
     {
         $genderAttributeCode = Mage::getStoreConfig('tappz/customer/gender');
         $emailAttributeCode = Mage::getStoreConfig('tappz/customer/email');
         $phoneAttributeCode = Mage::getStoreConfig('tappz/customer/phone');
         $birthDateAttributeCode = Mage::getStoreConfig('tappz/customer/birthDate');
-
         $customerData = $this->_prepareCustomerData($tCustomerData);
         $customer = Mage::getModel('customer/customer')->load($customerData['entity_id']);
-        /* @var $customer Mage_Customer_Model_Customer */
-
         if (!$customer->getId()) {
             $this->_fault('not_exists');
         }
-
         try {
             $customer->setData('firstname', $customerData['firstname']);
             $customer->setData('lastname', $customerData['lastname']);
@@ -153,45 +192,41 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
             $customer->setData($emailAttributeCode, $customerData[$emailAttributeCode]);
             $customer->setData($phoneAttributeCode, $customerData[$phoneAttributeCode]);
             $customer->setData($birthDateAttributeCode, $customerData[$birthDateAttributeCode]);
-
             if (isset($customerData['isSubscribed']))
                 $customer->setIsSubscribed($customerData['isSubscribed'] === 'true' ? true : false);
-
             $customer->save();
         } catch (Mage_Core_Exception $e) {
             $this->_fault('invalid_data', $e->getMessage());
         }
-
         return $this->info($customer->getId());
     }
-
+    /**
+     * @param $email
+     * @return string
+     */
     public function lostPassword($email)
     {
         if (!isset($email) || trim($email) === '') {
             $this->_fault("invalid_data", "Please enter a valid email address.");
         }
-
         $storeId = Mage::getStoreConfig('tappz/general/store');
-        /** @var Mage_Core_Model_Store $store */
         $store = Mage::getModel('core/store')->load($storeId);
-
         $customer = $customer = Mage::getModel('customer/customer')
             ->setStoreId($storeId)
             ->setWebsiteId($store->getWebsiteId())
             ->loadByEmail($email);
-
         if (!$customer) {
             $this->_fault("invalid_data", "Customer is not found");
         }
         $customer = $customer->sendPasswordReminderEmail();
-
         if (!$customer) {
             $this->_fault("invalid_data", "Error occured while sending email");
         }
-
         return "Your password reminder email has been sent.";
     }
-
+    /**
+     * @return mixed
+     */
     public function getUserAgreement()
     {
         $agreement = Mage::getStoreConfig('tappz/customer/agreement');

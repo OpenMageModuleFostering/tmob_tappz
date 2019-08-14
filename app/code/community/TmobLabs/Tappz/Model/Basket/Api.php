@@ -1,16 +1,18 @@
 <?php
-
 class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
 {
+    /**
+     * @param $quoteId
+     * @param null $customerId
+     * @return array
+     */
     public function get($quoteId, $customerId = null)
     {
         $decimalDivider = Mage::getStoreConfig('tappz/general/decimalSeparator');
         $thousandDivider = Mage::getStoreConfig('tappz/general/groupSeparator');
         $store = Mage::getStoreConfig('tappz/general/store');
-
         $lineAverageDeliveryDaysAttributeCode = Mage::getStoreConfig('tappz/basket/averagedeliverydaysattributecode');
         $creditCardPaymentType = Mage::getStoreConfig('tappz/basket/creditcardpaymenttype');
-
         $basket = array();
         $basket['id'] = null;
         $basket['lines'] = array();
@@ -78,7 +80,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $quoteShippingAddress = $quote->getShippingAddress();
         if ($quoteShippingAddress) {
             $basket['delivery']['shippingAddress'] = $addressApi->get($quoteShippingAddress->getData('customer_address_id'));
-
             $basket['delivery']['shippingMethod']['id'] = $quoteShippingAddress->getData('shipping_method');
             $basket['delivery']['shippingMethod']['displayName'] = $quoteShippingAddress->getData('shipping_description');
             $basket['delivery']['shippingMethod']['trackingAddress'] = null;
@@ -88,8 +89,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $basket['delivery']['shippingMethod']['imageUrl'] = null;
             $basket['discountTotal'] = number_format($quoteShippingAddress->getData('discount_amount'), 2, $decimalDivider, $thousandDivider);
             $basket['shippingTotal'] = number_format($quoteShippingAddress->getData('shipping_incl_tax'), 2, $decimalDivider, $thousandDivider);
-        } else {
-            
         }
         $basket['itemsPriceTotal'] = number_format($quote->getData('base_subtotal'), 2, $decimalDivider, $thousandDivider);
         if (!isset($basket['discountTotal']))
@@ -156,7 +155,7 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 $paymentData['accountNumber'] = null;
                 $paymentData['branch'] = null;
                 $paymentData['iban'] = null;
-            } else if ($method == 'stripe') { 
+            } else if ($method == 'stripe') {
                 $paymentData['methodType'] = 'ApplePay';
                 $paymentData['type'] = $method;
                 $paymentData['displayName'] = 'Apple Pay';
@@ -178,7 +177,7 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $code = $method->getCode();
             if ($code == $creditCardPaymentType) {
                 try {
-                    $paymentOptions['creditCards'] = $this->getTaksitSecenekleri($quote->getId());
+                    $paymentOptions['creditCards'] = $this->installmentCash($quote->getId());
                 } catch (Exception $e) {
                     $paymentOptions['creditCards'] = array();
                 }
@@ -198,7 +197,7 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 $paymentOptions['moneyTransfers'][0]['branch'] = ' ';
                 $paymentOptions['moneyTransfers'][0]['accountNumber'] = ' ';
                 $paymentOptions['moneyTransfers'][0]['iban'] = ' ';
-                $paymentOptions['moneyTransfers'][0]['imageUrl'] = 'https://ec2-54-195-21-237.eu-west-1.compute.amazonaws.com/bitnami/images/corner-logo.png'; // TODO
+                $paymentOptions['moneyTransfers'][0]['imageUrl'] = ''; // TODO
             } elseif ($code == 'cashondelivery') {
                 $paymentOptions['cashOnDelivery'] = array();
                 $paymentOptions['cashOnDelivery']['type'] = null;
@@ -210,8 +209,8 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 $paymentOptions['cashOnDelivery']['PhoneNumber'] = null;
                 $paymentOptions['cashOnDelivery']['type'] = $code;
                 $paymentOptions['cashOnDelivery']['displayName'] = $method->getTitle();
-                $paymentOptions['cashOnDelivery']['additionalFee'] = '0'; 
-                $paymentOptions['cashOnDelivery']['description'] = 'Cash on delivery description text'; 
+                $paymentOptions['cashOnDelivery']['additionalFee'] = '0';
+                $paymentOptions['cashOnDelivery']['description'] = 'Cash on delivery description text';
                 $paymentOptions['cashOnDelivery']['isSMSVerification'] = false;
                 $paymentOptions['cashOnDelivery']['SMSCode'] = null;
                 $paymentOptions['cashOnDelivery']['PhoneNumber'] = null;
@@ -227,27 +226,25 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             }
         }
         $basket['paymentOptions'] = $paymentOptions;
-
         $shippingMethods = array();
         if (isset($quoteShippingAddress)) {
-                $quoteShippingAddress->collectShippingRates()->save();
-                $groupedRates = $quoteShippingAddress->getGroupedAllShippingRates();
-                foreach ($groupedRates as $carrierCode => $rates) {
-                    foreach ($rates as $rate) {
-                        $rateItem = array();
-                        $rateItem['id'] = $rate->getData('code');
-                        $rateItem['displayName'] = $rate->getData('method_title');
-                        $rateItem['trackingAddress'] = null;
-                        $rateItem['price'] = number_format($rate->getData('price'), 2, $decimalDivider, $thousandDivider);
-                        $rateItem['priceForYou'] = null;
-                        $rateItem['shippingMethodType'] = $rate->getData('code');
-                        $rateItem['imageUrl'] = null;
-                        $shippingMethods[] = $rateItem;
-                    }
+            $quoteShippingAddress->collectShippingRates()->save();
+            $groupedRates = $quoteShippingAddress->getGroupedAllShippingRates();
+            foreach ($groupedRates as $carrierCode => $rates) {
+                foreach ($rates as $rate) {
+                    $rateItem = array();
+                    $rateItem['id'] = $rate->getData('code');
+                    $rateItem['displayName'] = $rate->getData('method_title');
+                    $rateItem['trackingAddress'] = null;
+                    $rateItem['price'] = number_format($rate->getData('price'), 2, $decimalDivider, $thousandDivider);
+                    $rateItem['priceForYou'] = null;
+                    $rateItem['shippingMethodType'] = $rate->getData('code');
+                    $rateItem['imageUrl'] = null;
+                    $shippingMethods[] = $rateItem;
                 }
+            }
         }
         $basket['shippingMethods'] = $shippingMethods;
-
         $giftCheques = array();
         if ($quote->getData('gift_cards')) {
             // TODO
@@ -274,7 +271,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $basket['errors'] = $quote->getErrors();
         return $basket;
     }
-
+    /**
+     * @param $anonymousQuoteId
+     * @param $customerId
+     * @return array
+     */
     public function merge($anonymousQuoteId, $customerId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -304,7 +305,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return $this->get($quote->getId());
     }
-
+    /**
+     * @param $quoteId
+     * @param $updateList
+     * @return array
+     */
     public function updateItems($quoteId, $updateList)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -328,10 +333,17 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $quote->setTotalsCollectedFlag(false)->collectTotals()->save();
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @param $shippingAddressId
+     * @param $billingAddressId
+     * @param $shippingMethodId
+     * @return array
+     */
     public function setAddress($quoteId, $shippingAddressId, $billingAddressId, $shippingMethodId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
-         $quote = Mage::getModel("sales/quote")
+        $quote = Mage::getModel("sales/quote")
             ->setStoreId($store)
             ->load($quoteId);
         if (!is_null($billingAddressId)) {
@@ -343,7 +355,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 ->importCustomerAddress($customerBillingAddress);
             $quote->setBillingAddress($billingAddress);
         }
-
         if (!is_null($shippingAddressId)) {
             $customerShippingAddress = Mage::getModel('customer/address')
                 ->load($shippingAddressId);
@@ -371,11 +382,15 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 $this->_fault('invalid_data', $e->getMessage());
             }
         }
-
         $quote->setTotalsCollectedFlag(false)->collectTotals()->save();
         return $this->get($quote->getId());
     }
-
+    /**
+     * @param $quoteId
+     * @param $isSelected
+     * @param $message
+     * @return array
+     */
     public function setGiftWrapping($quoteId, $isSelected, $message)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -397,6 +412,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @param $promoCode
+     * @return array
+     */
     public function useDiscount($quoteId, $promoCode)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -412,6 +432,10 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @return array
+     */
     public function deleteDiscount($quoteId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -427,15 +451,24 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @param $code
+     * @return array
+     */
     public function useGiftCheques($quoteId, $code)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
-       
+
         $quote = Mage::getModel("sales/quote")
             ->setStoreId($store)
             ->load($quoteId);
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @return array
+     */
     public function deleteGiftCheques($quoteId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -444,14 +477,24 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             ->load($quoteId);
         return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @param $points
+     * @return array
+     */
     public function useUserPoints($quoteId, $points)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
         $quote = Mage::getModel("sales/quote")
             ->setStoreId($store)
             ->load($quoteId);
-       return $this->get($quote->getId());
+        return $this->get($quote->getId());
     }
+    /**
+     * @param $quoteId
+     * @param $payment
+     * @return array
+     */
     public function selectPaymentMethod($quoteId, $payment)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -485,10 +528,12 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                     $paymentData['cc_exp_month'] = $creditCard->month;
                     $paymentData['cc_exp_year'] = $creditCard->year;
                     $paymentData['cc_cid'] = $creditCard->cvv;
+                    $session = Mage::getSingleton('core/session');
                     $session->setData('ccNumber', $creditCard->number);
                     $session->setData('ccType', $type);
                     $session->setData('expYear', $creditCard->year);
                     $session->setData('expMonth', $creditCard->month);
+                    $session->setData('cvv', $creditCard->cvv);
                 } else {
                     return $this->get($quote->getId());
                 }
@@ -508,12 +553,17 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 return $this->get($quote->getId());
                 break;
         }
-
         $paymentData['method'] = $paymentMethod;
         $quote = $this->setPaymentData($quote, $paymentData);
         return $this->get($quote->getId());
-    }
+        }
 
+        
+    /**
+     * @param $quote
+     * @param $paymentData
+     * @return Mage_Sales_Model_Quote
+     */
     protected function setPaymentData($quote, $paymentData)
     {
         /* @var $quote Mage_Sales_Model_Quote */
@@ -565,12 +615,12 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return $quote;
     }
-        /* @var $quote Mage_Sales_Model_Quote */
-        /** @var $method Mage_Payment_Model_Method_Abstract */
-        /**
-         * Checking for min/max order total for assigned payment method
-         */
-        
+
+    /**
+     * @param $method
+     * @param $quote
+     * @return bool
+     */
     protected function _canUsePaymentMethod($method, $quote)
     {
         if (!$method->canUseForCountry($quote->getBillingAddress()->getCountry())) {
@@ -587,10 +637,10 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         }
         return true;
     }
-    /** @var $quote Mage_Sales_Model_Quote */
-    /** @var $customerResource Mage_Checkout_Model_Api_Resource_Customer */
-     /** @var $service Mage_Sales_Model_Service_Quote */
-        
+    /**
+     * @param $quote
+     * @return mixed
+     */
     protected function purchase($quote)
     {
         if ($quote->getIsMultiShipping()) {
@@ -629,7 +679,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                     Mage::logException($e);
                 }
             }
-            $this->_fault('invalid_data', $e->getMessage());
             Mage::dispatchEvent(
                 'checkout_submit_all_after',
                 array('order' => $order, 'quote' => $quote)
@@ -640,9 +689,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $quote->setIsActive(false)->save();
         return $order->getIncrementId();
     }
-        /* @var $quote Mage_Sales_Model_Quote */
-        /** @var $_a  Mage_Checkout_Model_Agreement */
 
+    /**
+     * @param $quoteId
+     * @return array
+     */
     public function getContract($quoteId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -654,43 +705,91 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $agreementsCollection = Mage::getModel('checkout/agreement')->getCollection()
                 ->addStoreFilter($store)
                 ->addFieldToFilter('is_active', 1);
-
             foreach ($agreementsCollection as $_a) {
                 $agreements[] = $_a;
             }
         }
-
         $contract = array();
         $contract['salesContact'] = $agreements[0]['content'];
         $contract['termOfUse'] = $agreements[1]['content'];
         return $contract;
     }
-    /* @var $quote Mage_Sales_Model_Quote */
-    //        $session->setData('ccNumber', $creditCard->number);
-    //        $session->setData('ccType', $type);
-    //        $session->setData('expYear', $creditCard->year);
-    //        $session->setData('expMonth', $creditCard->month);
-    public function purchaseCreditCard($quoteId)
+    /**
+     * @param $quoteId
+     * @return mixed
+     *
+     */
+    public function purchaseCreditCard($quoteId,$payment)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
-        $quote = Mage::getModel("sales/quote")
-            ->setStoreId($store)
-            ->load($quoteId);
-        try {
-            $session = Mage::getSingleton('checkout/session');
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, 'http://www.annelutfen.com/gtrpay/grinet/teb_payment/');
-            curl_setopt($ch, CURLOPT_POST, 1);
-            $token_result_json = curl_exec($ch);
-            curl_close($ch);
-            $token_result = json_decode($token_result_json);
-        } catch (Mage_Core_Exception $e) {
-            $this->_fault('invalid_data', $e->getMessage());
-        }
+        $quote = Mage::getModel("sales/quote")->setStoreId($store)->load($quoteId);
         $orderId = $this->purchase($quote);
-        return Mage::getSingleton('tappz/Customer_Order_Api')->info($orderId);
-    }
 
+        $api_key = "214E94E11A1B2FF65839864CBFEEE";
+        $post_arr = array(
+                    "banka"                =>  $payment->bankCode,
+                    "taksit"            => $payment->installment,
+                    "cc_owner"            =>$payment->creditCard->owner,
+                    "cc_number"            =>$payment->creditCard->number,
+                    "cc_cvv"            => $payment->creditCard->cvv,
+                    "cc_expire_month"    => $payment->creditCard->month,
+                    "cc_expire_year"    =>$payment->creditCard->year,
+                    "order_id"            => "$orderId",
+                    //"quote_id"            => "$quoteId",
+                    "date"                => date("Y-m-d H:i:s"),
+                    "customer_ip"        => $this->getClientIP(),
+                );
+        $hash_text = $post_arr['order_id'].
+                //$post_arr['quote_id'].
+                $post_arr['banka'].
+                $post_arr['cc_number'].
+                $api_key.$post_arr['date'];
+        $hash = md5($hash_text);
+        $post_arr["grinet_mobile_hash"] = $hash;
+        $url = Mage::getBaseUrl (Mage_Core_Model_Store::URL_TYPE_WEB)."gtrpay/grinet/".$post_arr['banka']."_payment/";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,2);
+        curl_setopt($ch, CURLOPT_SSLVERSION, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 90);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_arr);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $msg  = json_decode($result);        
+        $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
+        if( strtolower( trim($msg->status)) == "error" ){
+            if(isset($msg->system_message)){
+                    $error_msg = $msg->system_message;
+            }
+            elseif(isset($msg->error_message)){
+                $error_msg = $msg->error_message;
+            }elseif(isset($msg->customer_message)){
+                   $error_msg = $msg->customer_message;
+            }
+            $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true)->save();
+             $this->_fault('invalid_data',$error_msg);
+        }elseif(strtolower( trim($msg->status)) == "success") {
+            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true)->save();
+            return Mage::getSingleton('tappz/Customer_Order_Api')->info($orderId);
+        }else{
+            $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, true)->save();
+            $this->_fault('invalid_data',"Unknown payment status");
+        }
+    }
+    public function getClientIP(){
+        if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)){
+            return  $_SERVER["HTTP_X_FORWARDED_FOR"];
+        }else if (array_key_exists('REMOTE_ADDR', $_SERVER)) {
+            return $_SERVER["REMOTE_ADDR"];
+        }else if (array_key_exists('HTTP_CLIENT_IP', $_SERVER)) {
+            return $_SERVER["HTTP_CLIENT_IP"];
+        }
+        return '';
+    }
     public function purchaseMoneyOrder($quoteId, $moneyOrderType)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -700,7 +799,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $orderId = $this->purchase($quote);
         return Mage::getSingleton('tappz/Customer_Order_Api')->info($orderId);
     }
- /* @var $quote Mage_Sales_Model_Quote */
     public function purchaseCashOnDelivery($quoteId, $cashOnDelivery)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -710,11 +808,10 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $orderId = $this->purchase($quote);
         return Mage::getSingleton('tappz/Customer_Order_Api')->info($orderId);
     }
-   /* @var $quote Mage_Sales_Model_Quote */
-   /* @var $convert Mage_Sales_Model_Convert_Quote */
-   /* @var $transaction Mage_Core_Model_Resource_Transaction */
-    //$quote->setTotalsCollectedFlag(true);
-    /** @var Mage_Sales_Model_Order_Item $item */
+    /**
+     * @param $quote
+     * @return mixed
+     */
     public function createNewOrder($quote)
     {
         Mage::getSingleton('checkout/session')->replaceQuote($quote);
@@ -723,7 +820,7 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         $quote->setIsActive(false);
         if ($quote->getCustomerId()) {
             $transaction->addObject($quote->getCustomer());
-        }    
+        }
         $transaction->addObject($quote);
         $quote->reserveOrderId();
         if ($quote->isVirtual()) {
@@ -750,13 +847,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             }
             $order->addItem($orderItem);
         }
-
         $order->setCanSendNewEmailFlag(false);
         $order->setQuoteId($quote->getId());
         $order->setExtOrderId($quote->getPayment()->getTransactionId());
         $transaction->addObject($order);
         $transaction->addCommitCallback(array($order, 'save'));
-
         try {
             $transaction->save();
             $quote->setIsActive(false)->save();
@@ -768,14 +863,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
                 )
             );
         } catch (Exception $e) {
-            //reset order ID's on exception, because order not saved
             $order->setId(null);
-            /** @var $item Mage_Sales_Model_Order_Item */
             foreach ($order->getItemsCollection() as $item) {
                 $item->setOrderId(null);
                 $item->setItemId(null);
             }
-
             Mage::dispatchEvent(
                 'sales_model_service_quote_submit_failure',
                 array(
@@ -790,13 +882,17 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         Mage::dispatchEvent('sales_model_service_quote_submit_after', array('order' => $order, 'quote' => $quote));
         return $order;
     }
+    /**
+     * @param $quoteId
+     * @param $transactionId
+     * @return mixed
+     */
     public function purchaseWithPayPal($quoteId, $transactionId)
     {
         $paypalIsSandBox = (bool)Mage::getStoreConfig('tappz/basket/paypalissandbox');
         $paypalClientId = Mage::getStoreConfig('tappz/basket/paypalclientid');
         $paypalSecret = Mage::getStoreConfig('tappz/basket/paypalSecret');
         $store = Mage::getStoreConfig('tappz/general/store');
-        /* @var $quote Mage_Sales_Model_Quote */
         $quote = Mage::getModel("sales/quote")
             ->setStoreId($store)
             ->load($quoteId);
@@ -819,7 +915,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $token_result_json = curl_exec($ch);
             curl_close($ch);
             $token_result = json_decode($token_result_json);
-
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url . 'payments/payment/' . $transactionId);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
@@ -844,7 +939,11 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $this->_fault('invalid_data', 'PayPal transaction is not completed.');
         }
     }
-    /* @var $quote Mage_Sales_Model_Quote */
+    /**
+     * @param $quoteId
+     * @param $tokenId
+     * @return mixed
+     */
     public function purchaseWithApplePay($quoteId, $tokenId)
     {
         $stripeIsTest = (bool)Mage::getStoreConfig('tappz/basket/stripeistest');
@@ -872,7 +971,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $charge_json = curl_exec($ch);
             curl_close($ch);
             $charge = json_decode($charge_json);
-
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, 'https://api.stripe.com/v1/charges/' . $charge->id . '/capture');
             curl_setopt($ch, CURLOPT_USERPWD, $secretKey);
@@ -896,77 +994,112 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $this->_fault('invalid_data', 'Apple Pay transaction is not completed.');
         }
     }
-
-    // TODO : mcgoncu - annelutfen icin ekle
-    public function getTaksitSecenekleri($quoteId)
+    /**
+     *
+     * @param $quoteId
+     * @return array
+     *
+     * İf you dont use
+     */
+    public function installmentCash($quoteId)
     {
         $bankInfos = array();
-        $exclude_cats = array(219, 218, 527, 217, 651, 329, 331, 678);
-        $show_taksits = true;
+        $showInstallments = true;
         $cats = array();
         $cart = Mage::getModel("sales/quote")->load($quoteId);
+        $amount = $cart->getGrandTotal();
         $cartItems = $cart->getItems();
-        $tutar = $cart->getGrandTotal();
-        foreach ($cartItems as $item) {
-            $cats[] = $item->getProduct()->getCategoryIds();
-        }
-        if (count($cats) > 0) {
-            foreach ($cats as $vals) {
-                foreach ($vals as $dd) {
-                    if (in_array($dd, $exclude_cats)) {
-                        $show_taksits = false;
+        /**
+         * İf you have specific categories  that not allowed installment please go to excludeCategories
+         * and add your categories id
+         */
+        $excludeCats = $this->excludeCategories();
+        if(count($excludeCats) > 0){
+            foreach ($cartItems as $item) {
+                $cats[] = $item->getProduct()->getCategoryIds();
+            }
+            if (count($cats) > 0) {
+                foreach ($cats as $rows) {
+                    foreach ($rows as $row) {
+                        if (in_array($row, $excludeCats)) {
+                            $showInstallments = false;
+                        }
                     }
                 }
             }
         }
-        $turkpay = Mage::getModel('Grinet_Turkpay_Model_Grinet');
-        if ($turkpay) {
-            $bank_avs = $turkpay->bankalar();
-        }
-        if (!empty($bank_avs)) {
-            $bankCount = 0;
-            $fark = 0;
-            foreach ($bank_avs as $bank_code => $bank) {
-                $tdata = $turkpay->taksitler($bank_code, $tutar);
-                $valCount = 0;
-                foreach ($tdata as $tay => $toran) {
-                    $toplam_tutar = $tutar + (($tutar / 100) * floatval($toran)) + $fark;// - ( ( $fark / 100 ) * floatval($toran) ) ;
-                    $custom_title = Mage::getStoreConfig($bank_code . '/taksit_baslik/taksit_' . $tay);
-                    if (trim($custom_title) == '')
-                        $taksit_title = 'Tek Çekim';
-                    else
-                        $taksit_title = $custom_title;
 
-                    if ($show_taksits === false) {
-                        $custom_title = Mage::getStoreConfig($bank_code . '/taksit_baslik/taksit_0');
-                        if (trim($custom_title) == '')
-                            $taksit_title = 'Tek Çekim';
-                        else
-                            $taksit_title = $custom_title;
-                    }
-                    $bankInfos[$bankCount]['image'] = null; // TODO : annelutfen - banka imajı
+        /**
+         * İf you  use any extension you have to add here
+         */
+        $model = Mage::getModel('Grinet_Turkpay_Model_Grinet');
+
+        if ($model) {
+            /**
+             * Get  your banks
+             */
+            $banks = $model->bankalar();
+        }
+        if (!empty($banks)) {
+            $bankCount = 0;
+            $fee = 0;
+            foreach ($banks as $bank_code => $bank) {
+                /**
+                 * Get  Instalments
+                 */
+                $installments = $model->taksitler($bank_code, $amount);
+                $valCount = 0;
+                foreach ($installments as $key => $toran) {
+                    $totalAmount = $amount + (($amount / 100) * floatval($toran)) + $fee;
+                    $custom_title = Mage::getStoreConfig($bank_code . '/taksit_baslik/taksit_' . $key);
+                    $installmentTitle = (trim($custom_title) == '')? false :$custom_title;
+                    /**
+                     *  Bank logo & image
+                     */
+                    $bankInfos[$bankCount]['image'] = null;
+                    /**
+                     *  Bank name
+                     */
                     $bankInfos[$bankCount]['displayName'] = trim($bank['name']);
-                    $bankInfos[$bankCount]['type'] = null;// TODO : annelutfen - kart kodu
-                    $bankInfos[$bankCount]['installmentNumber'] = null; // TODO : annelutfen - maximum taksit sayısı
-                    $bankInfos[$bankCount]['installments'][$valCount]['installmentNumber'] = $valCount; // TODO - annelutfen - dogru mu bu?
-                    $bankInfos[$bankCount]['installments'][$valCount]['installmentPayment'] = round($toplam_tutar / $valCount, 2, PHP_ROUND_HALF_UP); // TODO - annelutfen - dogru mu bu?
-                    $bankInfos[$bankCount]['installments'][$valCount]['total'] = round($toplam_tutar, 2, PHP_ROUND_HALF_UP);
-                    if ($show_taksits === false) {
-                        if ($taksit_title == "Tek Çekim")
-                            break;
+                    /**
+                     * Bank type
+                     */
+                    $bankInfos[$bankCount]['type'] = $bank_code;
+                    /**
+                     * Bank  installments (example :  if you have   9 months installments you should simply  add "9"  )
+                     */
+                    $bankInfos[$bankCount]['installmentNumber'] = null;
+                    $bankInfos[$bankCount]['installments'][$valCount]['installmentNumber'] = null;
+                    $bankInfos[$bankCount]['installments'][$valCount]['installmentPayment'] = round($totalAmount / $valCount, 2, PHP_ROUND_HALF_UP);
+                    $bankInfos[$bankCount]['installments'][$valCount]['total'] = round($totalAmount, 2, PHP_ROUND_HALF_UP);
+                    if ($showInstallments === false && $installmentTitle == false) {
+                        break;
                     }
                     $valCount++;
                 }
                 $bankCount++;
             }
-        } else
+        } else{
             $bankInfos = null;
+        }
         return $bankInfos;
     }
-
-        /* @var $quote Mage_Sales_Model_Quote */
-         /* @var $product Mage_Catalog_Model_Product */
-        
+    /**
+     * İf you have specific categories that not allowed installment Cash
+     * Please set category ids in array
+     * Example : $categories = array("{{category_id}}","{{category_id}}");
+     *
+     */
+    public function excludeCategories()
+    {
+        $categories = array();
+        return $categories;
+    }
+    /**
+     * @param $quoteId
+     * @return string
+     *
+     */
     public function getSupplyDate($quoteId)
     {
         $store = Mage::getStoreConfig('tappz/general/store');
@@ -1010,7 +1143,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
             $by_3 = false;
             $by_0 = false;
         }
-
         $cMsg = '';
         if ($by_0) {
             $cMsg = "Sepetinizdeki ürünlerin tamamı aynı günde kargoya teslim edilecektir.";
@@ -1027,7 +1159,6 @@ class TmobLabs_Tappz_Model_Basket_Api extends Mage_Api_Model_Resource_Abstract
         if ($by_7) {
             $cMsg = "Sepetinizdeki ürünlerin tamamı 7 iş gününde kargoya teslim edilecektir.";
         }
-
         return $cMsg;
     }
 }

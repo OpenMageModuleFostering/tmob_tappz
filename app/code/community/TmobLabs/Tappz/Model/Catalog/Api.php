@@ -1,7 +1,9 @@
 <?php
-
 class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
 {
+    /**
+     * @return mixed
+     */
     public function getFrontPage()
     {
         $sampleEx['ads'][0]['name'] = null;
@@ -11,7 +13,7 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $frontPageCategory1 = Mage::getStoreConfig('tappz/catalog/catalog1');
         if ($frontPageCategory1) {
             $category = $this->getCategory($frontPageCategory1);
-            $productList = $this->getProductList(null, $frontPageCategory1, 0, 6, null, null);
+            $productList = $this->getProductList(null, $frontPageCategory1, 0, 20, null, null);
             $group = array();
             $group['partName'] = $category['name'];
             $group['products'] = $productList['products'];
@@ -20,7 +22,7 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $frontPageCategory2 = Mage::getStoreConfig('tappz/catalog/catalog2');
         if ($frontPageCategory2) {
             $category = $this->getCategory($frontPageCategory2);
-            $productList = $this->getProductList(null, $frontPageCategory2, 0, 6, null, null);
+            $productList = $this->getProductList(null, $frontPageCategory2, 0, 20, null, null);
             $group = array();
             $group['partName'] = $category['name'];
             $group['products'] = $productList['products'];
@@ -29,7 +31,7 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $frontPageCategory3 = Mage::getStoreConfig('tappz/catalog/catalog3');
         if ($frontPageCategory3) {
             $category = $this->getCategory($frontPageCategory3);
-            $productList = $this->getProductList(null, $frontPageCategory3, 0, 6, null, null);
+            $productList = $this->getProductList(null, $frontPageCategory3, 0, 20, null, null);
             $group = array();
             $group['partName'] = $category['name'];
             $group['products'] = $productList['products'];
@@ -38,7 +40,7 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $frontPageCategory4 = Mage::getStoreConfig('tappz/catalog/catalog4');
         if ($frontPageCategory4) {
             $category = $this->getCategory($frontPageCategory4);
-            $productList = $this->getProductList(null, $frontPageCategory4, 0, 6, null, null);
+            $productList = $this->getProductList(null, $frontPageCategory4, 0, 20, null, null);
             $group = array();
             $group['partName'] = $category['name'];
             $group['products'] = $productList['products'];
@@ -46,17 +48,18 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         }
         return $sampleEx;
     }
-
+    /**
+     * @return mixed
+     */
     public function getCategories()
     {
         $storeId = (int)Mage::getStoreConfig('tappz/general/store');
         if ($storeId <= 0) {
             $storeId = 1;
         }
- 
+
         /** @var Mage_Core_Model_Store $store */
         $store = Mage::getModel('core/store')->load($storeId);
-
         $rootCategoryId = $store->getRootCategoryId();
         if (!$rootCategoryId) {
             $rootCategoryId = 2;
@@ -64,6 +67,10 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $rootCategory = $this->getCategory($rootCategoryId);
         return $rootCategory['children'];
     }
+    /**
+     * @param $categoryId
+     * @return array
+     */
     public function getCategory($categoryId)
     {
         $storeId = Mage::getStoreConfig('tappz/general/store');
@@ -77,12 +84,11 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
             ->setStoreId($this->_getStoreId($storeId))
             ->addAttributeToSelect('name')
             ->addAttributeToSelect('is_active')
-
+            ->addAttributeToFilter('include_in_menu', 1)
             ->addIsActiveFilter();
         $tree->addCollectionData($collection, true);
         return $this->categoryToModel($root);
     }
-
     /**
      * @param $temp Mage_Catalog_Model_Category
      * @param bool $getChildren
@@ -97,24 +103,43 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $category['isLeaf'] = $temp->getChildrenCount() == 0;
         $category['parentCategoryId'] = $temp->getParentId();
         $category['children'] = array();
-
         if ($getChildren) {
             foreach ($temp->getChildren() as $child) {
                 $category['children'][] = $this->categoryToModel($child, false);
             }
         }
-
         return $category;
     }
-
+   
+    /**
+     * @param $phrase
+     * @param $categoryId
+     * @param $pageNumber
+     * @param $pageSize
+     * @param $filterQuery
+     * @param $sort
+     * @return array
+     */
     public function getProductList($phrase, $categoryId, $pageNumber, $pageSize, $filterQuery, $sort)
     {
-        $collection = Mage::getModel('catalog/product')
+             $storeId = (int)Mage::getStoreConfig('tappz/general/store');
+            if ($storeId <= 0) {
+                  $storeId = 1;
+                }
+                Mage::app()->setCurrentStore($storeId); //this part is hard coded TODO
+            if($categoryId){
+			$layer = Mage::getModel('catalog/layer');
+			$category = Mage::getModel("catalog/category")->load($categoryId);
+			$layer->setCurrentCategory($category);
+			$collection = $layer->getProductCollection()
+			->addAttributeToSelect('*');
+	}else{
+	$collection = Mage::getModel('catalog/product')
             ->getCollection()
             ->addAttributeToSelect('*')
             ->addAttributeToFilter('status', '1')
             ->addAttributeToFilter('visibility', Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH);
-
+		}
 
         if (!empty($filter)) {
             foreach ($filter as $f) {
@@ -124,53 +149,58 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
                 }
             }
         }
-
+ 
         if (!empty($phrase))
             $collection->addAttributeToFilter('name', array('like' => "%$phrase%"));
-
         if (!empty($categoryId)) {
             $collection->joinField('category_id', 'catalog/category_product', 'category_id', 'product_id = entity_id', null, 'left');
             $collection->addAttributeToFilter('category_id', array('eq' => $categoryId));
         }
-        
+
         $total = $collection->getSize();
         if (!empty($sort)) {
             $sortArr = explode("-", $sort);
             $collection->addAttributeToSort($sortArr[0], $sortArr[1]);
         }
-         $pageSize = 5;
+
         empty($pageNumber) ?    $pageNumber = 1 :  $pageNumber +=1;
-
         if (empty($pageSize))
-            $pageSize = 6;
-
+            $pageSize = 20;
         $collection->setPage($pageNumber, $pageSize);
-
         $result = array();
         $result['total'] = null;
         $result['filters'] = array();
         $result['sortList'] = array();
         $result['products'] = array();
-        $result['total'] = $total;
+
         $result['sortList'][] = array('id' => 'name-asc', 'name' => 'Name (Ascending)');
         $result['sortList'][] = array('id' => 'name-desc', 'name' => 'Name (Descending)');
         $result['sortList'][] = array('id' => 'price-asc', 'name' => 'Price (Ascending)');
         $result['sortList'][] = array('id' => 'price-desc', 'name' => 'Price (Descending)');
         if (!empty($collection)) {
             foreach ($collection as $_product) {
-                $result['products'][] = $this->getProduct($_product->getId());
+                $product = $this->getProduct($_product->getId());
+                if($product)
+                    $result['products'][] = $product;
             }
         }
+        $result['total'] = count( $result['products']);
         return $result;
     }
+    /**
+     * @param $productId
+     * @return array
+     */
     public function getProduct($productId)
     {
+
         $storeId = (int)Mage::getStoreConfig('tappz/general/store');
         if ($storeId <= 0) {
             $storeId = 1;
         }
-       $store = Mage::getModel('core/store')->load($storeId);
+        $store = Mage::getModel('core/store')->load($storeId);
         $product = Mage::getModel('catalog/product')->load($productId);
+
         $productInfo = array();
         $productInfo['id'] = null;
         $productInfo['productName'] = null;
@@ -222,17 +252,14 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         } else {
             $productInfo['pictures'][0]['url'] = $productInfo['picture'];
         }
-
         $productInfo['productDetailUrl'] = '<p>' . $product->getDescription() . '</p>';
-
         $isInStock = false;
         $stockStatus = Mage::getModel('cataloginventory/stock_item')
             ->loadByProduct($product)
             ->getIsInStock();
         if ($stockStatus == 1)
-            $isInStock = true;
+           $isInStock = true;
         $productInfo['inStock'] = $isInStock;
-
         $productAttributeCodeIsShippingFree = Mage::getStoreConfig('tappz/catalog/productAttributeCodeShippingInfo');
         $productInfo['isShipmentFree'] = $product->getData($productAttributeCodeIsShippingFree);
         $productInfo['productUrl'] = $product->getProductUrl();
@@ -254,8 +281,6 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
                 $group['values'] = array();
                 $group['id'] = $val['attribute_code'];
                 $group['name'] = $val['label'];
-                if ($val['attribute_code'] == 'beden')
-                    $productInfo['additionalDetail'] = "<a href=\"http://annelutfen.com/skin/frontend/purple/purple/images/olcu_tablosu_gri.png\">Ölçü tablosu</a>";
                 foreach ($val['values'] as $vv) {
                     $groupValue = array();
                     $groupValue['id'] = null;
@@ -271,7 +296,10 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         $productInfo['shipmentInformation'] = $product->getData($productAttributeCodeShippingInfo);
         return $productInfo;
     }
-
+    /**
+     * @param $productId
+     * @return array
+     */
     public function getRelatedProducts($productId)
     {
         $product = Mage::getModel('catalog/product')->load($productId);
@@ -289,6 +317,11 @@ class TmobLabs_Tappz_Model_Catalog_Api extends Mage_Catalog_Model_Api_Resource
         }
         return $arData;
     }
+    /**
+     * @param $parentProductId
+     * @param $attributeList
+     * @return int
+     */
     public function getChildProductId($parentProductId, $attributeList)
     {
         $subProductIds = Mage::getModel('catalog/product_type_configurable')
