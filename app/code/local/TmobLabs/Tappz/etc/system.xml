@@ -71,7 +71,145 @@
                     <show_in_website>1</show_in_website>
                     <show_in_store>1</show_in_store>
                     <fields>
-                  
+                        <bannerImage1 translate="label tooltip">
+                            <label>Banner 1 - Image</label>
+                            <tooltip>Choose an image for the first banner.</tooltip>
+                            <frontend_type>image</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_image</backend_model>
+                            <upload_dir config="system/filesystem/media" scope_info="1">tappz</upload_dir>
+                            <base_url type="media" scope_info="1">tappz</base_url>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerImage1>
+                        <bannerActionType1>
+                            <label>Banner 1 - Action Type</label>
+                            <tooltip>Choose an action type for the first banner.</tooltip>
+                            <frontend_type>select</frontend_type>
+                            <source_model>tappz/system_config_action</source_model>
+                            <sort_order>11</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerActionType1>
+                        <bannerActionValue1>
+                            <label>Banner 1 - Action Value</label>
+                            <tooltip>Choose an action value for the first banner.</tooltip>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>12</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <validate>validate-length
+                                minimum-length-1
+                            </validate>
+                        </bannerActionValue1>
+
+                        <bannerImage2 translate="label tooltip">
+                            <label>Banner 2 - Image</label>
+                            <tooltip>Choose an image for the second banner.</tooltip>
+                            <frontend_type>image</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_image</backend_model>
+                            <upload_dir config="system/filesystem/media" scope_info="1">tappz</upload_dir>
+                            <base_url type="media" scope_info="1">tappz</base_url>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerImage2>
+                        <bannerActionType2>
+                            <label>Banner 2 - Action Type</label>
+                            <tooltip>Choose an action type for the second banner.</tooltip>
+                            <frontend_type>select</frontend_type>
+                            <source_model>tappz/system_config_action</source_model>
+                            <sort_order>21</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerActionType2>
+                        <bannerActionValue2>
+                            <label>Banner 2 - Action Value</label>
+                            <tooltip>Choose an action value for the second banner.</tooltip>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>22</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <validate>validate-length
+                                minimum-length-1
+                            </validate>
+                        </bannerActionValue2>
+
+                        <bannerImage3 translate="label tooltip">
+                            <label>Banner 3 - Image</label>
+                            <tooltip>Choose an image for the third banner.</tooltip>
+                            <frontend_type>image</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_image</backend_model>
+                            <upload_dir config="system/filesystem/media" scope_info="1">tappz</upload_dir>
+                            <base_url type="media" scope_info="1">tappz</base_url>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerImage3>
+                        <bannerActionType3>
+                            <label>Banner 3 - Action Type</label>
+                            <tooltip>Choose an action type for the third banner.</tooltip>
+                            <frontend_type>select</frontend_type>
+                            <source_model>tappz/system_config_action</source_model>
+                            <sort_order>31</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerActionType3>
+                        <bannerActionValue3>
+                            <label>Banner 3 - Action Value</label>
+                            <tooltip>Choose an action value for the third banner.</tooltip>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>32</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <validate>validate-length
+                                minimum-length-1
+                            </validate>
+                        </bannerActionValue3>
+
+                        <bannerImage4 translate="label tooltip">
+                            <label>Banner 4 - Image</label>
+                            <tooltip>Choose an image for the fourth banner.</tooltip>
+                            <frontend_type>image</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_image</backend_model>
+                            <upload_dir config="system/filesystem/media" scope_info="1">tappz</upload_dir>
+                            <base_url type="media" scope_info="1">tappz</base_url>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerImage4>
+                        <bannerActionType4>
+                            <label>Banner 4 - Action Type</label>
+                            <tooltip>Choose an action type for the fourth banner.</tooltip>
+                            <frontend_type>select</frontend_type>
+                            <source_model>tappz/system_config_action</source_model>
+                            <sort_order>41</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </bannerActionType4>
+                        <bannerActionValue4>
+                            <label>Banner 4 - Action Value</label>
+                            <tooltip>Choose an action value for the fourth banner.</tooltip>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>42</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <validate>validate-length
+                                minimum-length-1
+                            </validate>
+                        </bannerActionValue4>
 
                         <catalog1 translate="label tooltip">
                             <label>Front Page - Product List 1</label>

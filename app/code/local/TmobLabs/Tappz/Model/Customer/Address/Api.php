@@ -16,6 +16,7 @@ class TmobLabs_Tappz_Model_Customer_Address_Api extends Mage_Api_Model_Resource_
     public function getList($customerId)
     {
         $customer = Mage::getModel('customer/customer')->load($customerId);
+        /* @var $customer Mage_Customer_Model_Customer */
         if (!$customer) {
             $this->_fault("404.10", "Customer is not found.");
         }
