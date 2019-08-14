@@ -8,7 +8,6 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $emailAttributeCode = Mage::getStoreConfig('tappz/customer/email');
         $phoneAttributeCode = Mage::getStoreConfig('tappz/customer/phone');
         $birthDateAttributeCode = Mage::getStoreConfig('tappz/customer/birthDate');
-
         $result = array();
         $result['entity_id'] = $data->customerId;
         $result['firstname'] = $data->firstName;
@@ -19,7 +18,6 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $result[$emailAttributeCode] = $data->email;
         $result[$phoneAttributeCode] = $data->phone;
         $result[$birthDateAttributeCode] = $data->birthDate;
-
         return $result;
     }
 
@@ -29,13 +27,10 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $emailAttributeCode = Mage::getStoreConfig('tappz/customer/email');
         $phoneAttributeCode = Mage::getStoreConfig('tappz/customer/phone');
         $birthDateAttributeCode = Mage::getStoreConfig('tappz/customer/birthDate');
-
-        /* @var $customer Mage_Customer_Model_Customer */
         $customer = Mage::getModel('customer/customer')->load($customerId);
         if (!$customer) {
             $this->_fault("404.10", "Customer is not found.");
         }
-
         $result = array();
         $result['customerId'] = "";
         $result['fullName'] = "";
@@ -51,7 +46,6 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $result['points'] = 0;
         $result['addresses'] = array();
         $result['giftCheques'] = array();
-
         $result['customerId'] = $customer->getId();
         $result['fullName'] = $customer->getName();
         $result['firstName'] = $customer->getFirstname() . ($customer->getMiddleName() ? (' ' . $customer->getMiddleName()) : '');
@@ -77,7 +71,7 @@ class TmobLabs_Tappz_Model_Customer_Api extends Mage_Customer_Model_Api_Resource
         $result['addresses'] = Mage::getSingleton('tappz/customer_address_api')->getList($customer->getId()); /// ??????
 
         $result['giftCheques'] = array();
-        // TODO: mcgoncu - giftCheque
+        
         return $result;
     }
 

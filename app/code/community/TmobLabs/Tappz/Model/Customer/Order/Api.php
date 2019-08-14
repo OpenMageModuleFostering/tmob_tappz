@@ -28,29 +28,19 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
     public function info($orderId)
     {
         $order = Mage::getModel('sales/order');
-
-        /* @var $order Mage_Sales_Model_Order */
-
         $order->loadByIncrementId($orderId);
-
         if (!$order->getId()) {
             $this->_fault('not_exists');
         }
-
         $result = $this->_getAttributes($order, 'order');
-        /** @var $addressApi TmobLabs_Tappz_Model_Customer_Address_Api */
         $addressApi = Mage::getSingleton('tappz/Customer_Address_Api');
-
-
         $result['items'] = array();
-
         foreach ($order->getAllItems() as $item) {
             if ($item->getGiftMessageId() > 0) {
                 $item->setGiftMessage(
                     Mage::getSingleton('giftmessage/message')->load($item->getGiftMessageId())->getMessage()
                 );
             }
-
             $result['items'][] = $this->_getAttributes($item, 'order_item');
         }
 
@@ -74,7 +64,6 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
         $thousandDivider = Mage::getStoreConfig('tappz/general/groupSeparator');
         $lineAverageDeliveryDaysAttributeCode = Mage::getStoreConfig('tappz/basket/averagedeliverydaysattributecode');
         $catalogApi = Mage::getSingleton('tappz/Catalog_Api');
-
         $result = array();
         $result['id'] = null;
         $result['currency'] = null;
@@ -102,7 +91,6 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
         $result['payment']['cashOnDelivery'] = null;
         $result['payment']['creditCard'] = null;
         $result['lines'] = array();
-
         $result['id'] = $order['increment_id'];
         $result['orderDate'] = date_format(date_create($order['created_at']), 'd/m/Y');
         $result['shippingStatus'] = $order['status'];
@@ -115,10 +103,9 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
         $result['delivery']['shippingMethod']['id'] = $order['shipping_method'];
         $result['delivery']['shippingMethod']['displayName'] = $order['shipping_description'];
         $result['delivery']['shippingMethod']['price'] = $order['shipping_amount'];
-        $result['payment']['methodType'] = $order['payment']['method']; // TODO : methodu bul
+        $result['payment']['methodType'] = $order['payment']['method']; 
         $result['payment']['accountNumber'] = '**** **** **** ' . $order['payment']['cc_last4'];
         $result['payment']['bankCode'] = $order['payment']['cc_type'];
-
         if ($result['payment']['methodType'] == 'paypal_express') {
             $result['payment']['methodType'] = 'PayPal';
             $result['payment']['type'] = 'PayPal';
@@ -132,7 +119,6 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
             $result['payment']['methodType'] = 'CreditCard';
             $result['payment']['type'] = 'Credit Card';
         }
-
         foreach ($order['items'] as $item){
             $line = array();
             $line['productId'] = $item['product_id'];
@@ -141,13 +127,11 @@ class TmobLabs_Tappz_Model_Customer_Order_Api extends Mage_Sales_Model_Order_Api
             $line['price'] = number_format($item['price_incl_tax'], 2, $decimalDivider, $thousandDivider);
             $line['priceTotal'] = number_format($item['row_total_incl_tax'], 2, $decimalDivider, $thousandDivider);
             $line['averageDeliveryDays'] = $item[$lineAverageDeliveryDaysAttributeCode];
-            $line['variants'] = array();// $item->getData('');
+            $line['variants'] = array();
 
             $result['lines'][] = $line;
         }
-
         $result['currency'] =  $order['currency'];
-
         return $result;
     }
 }
