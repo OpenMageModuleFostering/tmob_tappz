@@ -1,7 +1,7 @@
 {
-    "name": "OpenMageModuleFostering\/Tmob_Tappz",
+    "name": "openmage-module-fostering\/tmob_tappz",
     "type": "magento-module",
-    "license": "Open-Software-License-(OSL)",
+    "license": "OSL-3.0",
     "homepage": "",
     "description": "t-appz Adapter for Magento",
     "authors": [
