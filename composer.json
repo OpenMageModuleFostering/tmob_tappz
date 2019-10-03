@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Tmob_Tappz",
+    "name": "OpenMageModuleFostering\/Tmob_Tappz",
     "type": "magento-module",
     "license": "Open-Software-License-(OSL)",
     "homepage": "",
     "description": "t-appz Adapter for Magento",
     "authors": [
-    {
-        "name": "tmobtech ",
-        "email": "info@tmobtech.com"
-    }
-],
+        {
+            "name": "tmobtech ",
+            "email": "info@tmobtech.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
